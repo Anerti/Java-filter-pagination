@@ -4,18 +4,86 @@ import org.example.db.DBConnection;
 import org.example.model.Category;
 import org.example.model.Product;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DataRetriever {
-    private DBConnection connection = new DBConnection();
+    private final DBConnection connection;
 
-    List<Category> getAllCategories(){
-        throw new UnsupportedOperationException("Not supported yet.");
+    public DataRetriever(DBConnection connection) {
+        this.connection = connection;
     }
 
-    List<Product> getProductList (int page, int size){
-        throw new UnsupportedOperationException("Not supported yet.");
+    public List<Category> getAllCategories(){
+        final String query = "SELECT id AS category_id, name AS category_name FROM product_management_app.product_category";
+
+        List<Category> categories = new ArrayList<>();
+        try (Connection c = connection.getConnection()) {
+            PreparedStatement ps = c.prepareStatement(query);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                categories.add(
+                        new Category(
+                                rs.getInt("category_id"),
+                                rs.getString("category_name")
+                        )
+                );
+            }
+            return categories;
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<Product> getProductList (int page, int size){
+        final String query =
+                """
+                    SELECT
+                        product.id AS product_id,
+                        product.name AS product_name,
+                        product_category.id AS category_id,
+                        product_category.name AS category,
+                        product.creation_datetime AS product_creation_date
+                    FROM
+                        product_management_app.product
+                    INNER JOIN
+                        product_management_app.product_category
+                    ON
+                        product.id = product_category.product_id
+                    LIMIT ?
+                    OFFSET ?;
+                """;
+        List<Product> products = new ArrayList<>();
+        try (Connection c = connection.getConnection()){
+            PreparedStatement ps = c.prepareStatement(query);
+            ps.setInt(1,size);
+            ps.setInt(2,page - 1);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                products.add(
+                        new Product(
+                                rs.getInt("product_id"),
+                            rs.getString("product_name"),
+                            rs.getTimestamp("product_creation_date").toInstant(),
+                            new Category(
+                                    rs.getInt("category_id"),
+                                    rs.getString("category")
+                            )
+                        )
+                );
+            }
+            return products;
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     List<Product> getProductsByCriteria(String productName, String categoryName, Instant creationMin, Instant creationMax){
