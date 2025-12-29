@@ -12,14 +12,15 @@ VALUES
     (5, 'Ecran Samsung 27"', 1200.00, '2024-03-18 08:00:00');
 
 INSERT INTO product_management_app.product_category(
+    id,
     name,
     product_id
 )
 VALUES
-    ('Informatique', 1),
-    ('Téléphonie', 2),
-    ('Audio', 3),
-    ('Accessoires', 4),
-    ('Informatique', 5),
-    ('Bureau', 5),
-    ('Mobile', 2);
+    (1, 'Informatique', 1),
+    (2, 'Téléphonie', 2),
+    (3, 'Audio', 3),
+    (4, 'Accessoires', 4),
+    (5, 'Informatique', 5),
+    (6, 'Bureau', 5),
+    (7, 'Mobile', 2);

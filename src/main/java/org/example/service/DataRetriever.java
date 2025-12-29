@@ -21,4 +21,8 @@ public class DataRetriever {
     List<Product> getProductsByCriteria(String productName, String categoryName, Instant creationMin, Instant creationMax){
         throw new UnsupportedOperationException("Not supported yet.");
     }
+
+    List<Product> getProductsByCriteria(String productName, String categoryName, Instant creationMin, Instant creationMax, int page, int size){
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 }
