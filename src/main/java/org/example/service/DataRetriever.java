@@ -81,14 +81,14 @@ public class DataRetriever {
         Connection c = connection.getConnection();
         PreparedStatement ps = c.prepareStatement(query);
         ps.setInt(1,size);
-        ps.setInt(2,page - 1);
+        ps.setInt(2,(page - 1) * size);
         getProduct(products, ps);
 
         connection.closeConnection(c);
         return products;
     }
 
-    public List<Product> getProductsByCriteria(String productName, String categoryName, Instant creationMin, Instant creationMax) throws SQLException {
+    private StringBuilder getProductsCriteriaQueryHandler(String productName, String categoryName, Instant creationMin, Instant creationMax){
         final StringBuilder query = new StringBuilder
                 ("""
                     SELECT
@@ -105,7 +105,6 @@ public class DataRetriever {
                         product.id = product_category.product_id
                     WHERE 1 = 1
                 """);
-        List<Product> products = new ArrayList<>();
 
         if (productName != null && !productName.isEmpty()) query.append(" AND product.name ILIKE ?");
 
@@ -114,8 +113,11 @@ public class DataRetriever {
         if (creationMin != null) query.append(" AND creation_datetime >= ?");
 
         if (creationMax != null) query.append(" AND creation_datetime <= ?");
+        return query;
+    }
 
-        query.append(";");
+    private List<Product> getProductsByCriteriaRequestHandler(String productName, String categoryName, Instant creationMin, Instant creationMax, StringBuilder query) throws SQLException {
+        List<Product> products = new ArrayList<>();
         Connection c = connection.getConnection();
         PreparedStatement ps = c.prepareStatement(query.toString());
         int paramIndex = 1;
@@ -132,7 +134,17 @@ public class DataRetriever {
         return products;
     }
 
-    List<Product> getProductsByCriteria(String productName, String categoryName, Instant creationMin, Instant creationMax, int page, int size){
-        throw new UnsupportedOperationException("Not supported yet.");
+    public List<Product> getProductsByCriteria(String productName, String categoryName, Instant creationMin, Instant creationMax) throws SQLException {
+        final StringBuilder query = getProductsCriteriaQueryHandler(productName, categoryName, creationMin, creationMax);
+        query.append(";");
+
+        return getProductsByCriteriaRequestHandler(productName, categoryName, creationMin, creationMax, query);
+    }
+
+    List<Product> getProductsByCriteria(String productName, String categoryName, Instant creationMin, Instant creationMax, int page, int size) throws SQLException {
+        final StringBuilder query = getProductsCriteriaQueryHandler(productName, categoryName, creationMin, creationMax);
+        query.append(" LIMIT ? OFFSET ?;");
+
+        return getProductsByCriteriaRequestHandler(productName, categoryName, creationMin, creationMax, query);
     }
 }

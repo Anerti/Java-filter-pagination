@@ -13,12 +13,7 @@ public class DBConnection {
         return DriverManager.getConnection(url, user, password);
     }
 
-    public void closeConnection(Connection conn) {
-        try{
-            conn.close();
-        }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public void closeConnection(Connection conn) throws SQLException {
+        conn.close();
     }
 }
