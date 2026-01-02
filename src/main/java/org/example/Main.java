@@ -37,5 +37,9 @@ public class Main {
         //System.out.println(dataRetriever.getProductsByCriteria("Sony", "informatique", null, null));
         //System.out.println(dataRetriever.getProductsByCriteria(null, "audio", formater("2024-02-01"), formater("2024-12-01")));
         //System.out.println(dataRetriever.getProductsByCriteria(null, null, null, null));
+
+        //System.out.println(dataRetriever.getProductsByCriteria(null, null, null, null, 1, 10));
+        //System.out.println(dataRetriever.getProductsByCriteria("Dell", null, null, null, 1, 10));
+        //System.out.println(dataRetriever.getProductsByCriteria(null, "informatique", null, null, 1, 10));
     }
 }
