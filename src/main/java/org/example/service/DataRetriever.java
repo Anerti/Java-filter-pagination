@@ -16,29 +16,50 @@ public class DataRetriever {
         this.connection = connection;
     }
 
-    public List<Category> getAllCategories(){
+    public List<Category> getAllCategories() throws SQLException {
         final String query = "SELECT id AS category_id, name AS category_name FROM product_management_app.product_category";
 
         List<Category> categories = new ArrayList<>();
-        try (Connection c = connection.getConnection()) {
-            PreparedStatement ps = c.prepareStatement(query);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                categories.add(
-                        new Category(
-                                rs.getInt("category_id"),
-                                rs.getString("category_name")
-                        )
-                );
-            }
-            return categories;
+        Connection c = connection.getConnection();
+        PreparedStatement ps = c.prepareStatement(query);
+        ResultSet rs = ps.executeQuery();
+
+        while (rs.next()) {
+            categories.add(
+                    new Category(
+                            rs.getInt("category_id"),
+                            rs.getString("category_name")
+                    )
+            );
         }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+
+        ps.close();
+        rs.close();
+        connection.closeConnection(c);
+        return categories;
     }
 
-    public List<Product> getProductList (int page, int size){
+    private void getProduct(List<Product> products, PreparedStatement ps) throws SQLException {
+        ResultSet rs = ps.executeQuery();
+
+        while (rs.next()) {
+            products.add(
+                    new Product(
+                            rs.getInt("product_id"),
+                            rs.getString("product_name"),
+                            rs.getTimestamp("product_creation_date").toInstant(),
+                            new Category(
+                                    rs.getInt("category_id"),
+                                    rs.getString("category")
+                            )
+                    )
+            );
+        }
+        ps.close();
+        rs.close();
+    }
+
+    public List<Product> getProductList (int page, int size) throws SQLException {
         final String query =
                 """
                     SELECT
@@ -57,33 +78,17 @@ public class DataRetriever {
                     OFFSET ?;
                 """;
         List<Product> products = new ArrayList<>();
-        try (Connection c = connection.getConnection()){
-            PreparedStatement ps = c.prepareStatement(query);
-            ps.setInt(1,size);
-            ps.setInt(2,page - 1);
-            ResultSet rs = ps.executeQuery();
+        Connection c = connection.getConnection();
+        PreparedStatement ps = c.prepareStatement(query);
+        ps.setInt(1,size);
+        ps.setInt(2,page - 1);
+        getProduct(products, ps);
 
-            while (rs.next()) {
-                products.add(
-                        new Product(
-                                rs.getInt("product_id"),
-                            rs.getString("product_name"),
-                            rs.getTimestamp("product_creation_date").toInstant(),
-                            new Category(
-                                    rs.getInt("category_id"),
-                                    rs.getString("category")
-                            )
-                        )
-                );
-            }
-            return products;
-        }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        connection.closeConnection(c);
+        return products;
     }
 
-    public List<Product> getProductsByCriteria(String productName, String categoryName, Instant creationMin, Instant creationMax){
+    public List<Product> getProductsByCriteria(String productName, String categoryName, Instant creationMin, Instant creationMax) throws SQLException {
         final StringBuilder query = new StringBuilder
                 ("""
                     SELECT
@@ -111,37 +116,20 @@ public class DataRetriever {
         if (creationMax != null) query.append(" AND creation_datetime <= ?");
 
         query.append(";");
+        Connection c = connection.getConnection();
+        PreparedStatement ps = c.prepareStatement(query.toString());
+        int paramIndex = 1;
+        if (productName != null && !productName.isEmpty()) ps.setString(paramIndex++, String.format("%%%s%%", productName));
 
-        try (Connection c = connection.getConnection()){
-            PreparedStatement ps = c.prepareStatement(query.toString());
-            int paramIndex = 1;
-            if (productName != null && !productName.isEmpty()) ps.setString(paramIndex++, String.format("%%%s%%", productName));
+        if (categoryName != null && !categoryName.isEmpty()) ps.setString(paramIndex++, String.format("%%%s%%", categoryName));
 
-            if (categoryName != null && !categoryName.isEmpty()) ps.setString(paramIndex++, String.format("%%%s%%", categoryName));
+        if (creationMin != null) ps.setTimestamp(paramIndex++, Timestamp.from(creationMin));
 
-            if (creationMin != null) ps.setTimestamp(paramIndex++, Timestamp.from(creationMin));
+        if (creationMax != null) ps.setTimestamp(paramIndex, Timestamp.from(creationMax));
 
-            if (creationMax != null) ps.setTimestamp(paramIndex, Timestamp.from(creationMax));
-
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                products.add(
-                        new Product(
-                                rs.getInt("product_id"),
-                                rs.getString("product_name"),
-                                rs.getTimestamp("product_creation_date").toInstant(),
-                                new Category(
-                                        rs.getInt("category_id"),
-                                        rs.getString("category")
-                                )
-                        )
-                );
-            }
-            return products;
-        }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        getProduct(products, ps);
+        connection.closeConnection(c);
+        return products;
     }
 
     List<Product> getProductsByCriteria(String productName, String categoryName, Instant creationMin, Instant creationMax, int page, int size){
